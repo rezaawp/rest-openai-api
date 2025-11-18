@@ -3,7 +3,7 @@ from werkzeug.utils import secure_filename
 import os
 import uuid
 from services.extraction_invoice.main import process_invoices
-import asyncio
+from models.company import Company
 
 upload_bp = Blueprint("upload", __name__)
 
@@ -14,36 +14,61 @@ def allowed_file(filename):
 
 @upload_bp.route("/upload", methods=["POST"])
 def upload_file():
-    if "file" not in request.files:
-        return jsonify({"error": "No file part in the request"}), 400
+    # # companies = Company.query.all()
+    # # if not companies:
+    # #     return jsonify({"message": "Upload endpoint"}), 200
+    # # else:
+    # return jsonify({"message": "Companies exist in the database"}), 200
+    # Harus ada key 'files'
+    if "files" not in request.files:
+        return jsonify({"error": "No files part in the request"}), 400
 
-    file = request.files["file"]
+    files = request.files.getlist("files")
 
-    if file.filename == "":
-        return jsonify({"error": "No file selected"}), 400
+    if len(files) == 0:
+        return jsonify({"error": "No files selected"}), 400
 
-    if file and allowed_file(file.filename):
-        # Ambil extension aslinya
-        ext = file.filename.rsplit(".", 1)[1].lower()
+    saved_files = []
+    invoice_dirs = []
 
-        random_string = uuid.uuid4().hex
-        # Generate nama random
-        random_name = f"{random_string}.{ext}"
+    random_dir = uuid.uuid4().hex
 
-        invoice_dir = os.getenv("INVOICE_DIR", "invoices") + "/" + random_string
-        
-        os.makedirs(invoice_dir, exist_ok=True)
-        
-        save_path = os.path.join(invoice_dir, random_name)
-        file.save(save_path)
+    invoice_dir = os.path.join(os.getenv("INVOICE_DIR", "invoices"), random_dir)
+    os.makedirs(invoice_dir, exist_ok=True)
 
-        asyncio.run(process_invoices(invoice_dir=invoice_dir))
+    for file in files:
+        if file.filename == "":
+            continue
 
-        return jsonify({
-            "message": "Upload successful",
-            "original_filename": secure_filename(file.filename),
-            "saved_as": random_name,
-            "path": save_path
-        }), 200
+        if file and allowed_file(file.filename):
+            # Ambil extension
+            ext = file.filename.rsplit(".", 1)[1].lower()
 
-    return jsonify({"error": "Invalid file type, only PDF allowed"}), 400
+            # Random folder & filename
+            random_string = uuid.uuid4().hex
+            random_name = f"{random_string}.{ext}"
+            
+            save_path = os.path.join(invoice_dir, random_name)
+            file.save(save_path)
+
+            saved_files.append({
+                "original_filename": secure_filename(file.filename),
+                "saved_as": random_name,
+                "folder": invoice_dir,
+                "path": save_path
+            })
+
+            invoice_dirs.append(invoice_dir)
+
+        else:
+            return jsonify({"error": f"Invalid file type: {file.filename}"}), 400
+
+    # Jalankan proses hanya sekali untuk semua folder
+    # (jika logic kamu butuh satu folder per file, gunakan loop)
+    # for i_dir in invoice_dirs:
+    #     asyncio.run(process_invoices(invoice_dir=i_dir))
+
+    return jsonify({
+        "message": "Multiple upload success",
+        "files": saved_files
+    }), 200
