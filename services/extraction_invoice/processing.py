@@ -54,9 +54,9 @@ def flatten_invoice_structure(invoice):
         'Terms': invoice.terms
     }
     
-    for i, item in enumerate(invoice.invoice_items, 1):
-        flat[f'Item {i} Description'] = item.description
-        flat[f'Item {i} Total'] = item.total
+    # for i, item in enumerate(invoice.invoice_items, 1):
+    #     flat[f'Item {i} Description'] = item.description
+    #     flat[f'Item {i} Total'] = item.total
     
     return flat
 

@@ -4,6 +4,7 @@ from flask_migrate import Migrate
 from config.config import Config
 import os
 from controllers.upload_controller import upload_bp
+from controllers.process_inv_controller import process_inv
 from extensions import db
 
 migrate = Migrate()
@@ -18,6 +19,7 @@ def create_app():
 
     # Register blueprints
     app.register_blueprint(upload_bp, url_prefix="/api")
+    app.register_blueprint(process_inv, url_prefix="/api")
 
     @app.route('/')
     def home():

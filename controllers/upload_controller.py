@@ -4,6 +4,8 @@ import os
 import uuid
 from services.extraction_invoice.main import process_invoices
 from models.company import Company
+from extensions import db
+from models.bulk_invoice_status import BulkInvoiceStatus
 
 upload_bp = Blueprint("upload", __name__)
 
@@ -14,12 +16,6 @@ def allowed_file(filename):
 
 @upload_bp.route("/upload", methods=["POST"])
 def upload_file():
-    # # companies = Company.query.all()
-    # # if not companies:
-    # #     return jsonify({"message": "Upload endpoint"}), 200
-    # # else:
-    # return jsonify({"message": "Companies exist in the database"}), 200
-    # Harus ada key 'files'
     if "files" not in request.files:
         return jsonify({"error": "No files part in the request"}), 400
 
@@ -63,12 +59,31 @@ def upload_file():
         else:
             return jsonify({"error": f"Invalid file type: {file.filename}"}), 400
 
-    # Jalankan proses hanya sekali untuk semua folder
-    # (jika logic kamu butuh satu folder per file, gunakan loop)
-    # for i_dir in invoice_dirs:
-    #     asyncio.run(process_invoices(invoice_dir=i_dir))
+    db.session.add(BulkInvoiceStatus(
+        random_dir_name=random_dir,
+        status="Uploaded"
+    ))
+
+    db.session.commit()
 
     return jsonify({
         "message": "Multiple upload success",
-        "files": saved_files
+        "files": saved_files,
+        "directory": invoice_dir
+    }), 200
+
+@upload_bp.route("/uploaded_dir", methods=["GET"])
+def get_uploaded_dir():
+    dirs = BulkInvoiceStatus.query.filter_by(status="Uploaded").all()
+    result = []
+    for dir_status in dirs:
+        result.append({
+            "id": dir_status.id,
+            "random_dir_name": dir_status.random_dir_name,
+            "status": dir_status.status
+        })
+    return jsonify({
+        "stauts":"success",
+        "message": "Fetched uploaded directories",
+        "data":result   
     }), 200
