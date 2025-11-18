@@ -4,6 +4,11 @@ from datetime import date
 from pydantic import BaseModel, ConfigDict, ValidationError
 import pandas as pd
 from pprint import pprint
+import datetime
+from extensions import db
+from models.invoice_item import InvoiceItem as InvoiceItemModel
+from models.invoice import Invoice as InvoiceModel
+import traceback
 
 class InvoiceType(str, Enum):
     incoming = 'incoming'
@@ -53,11 +58,52 @@ def flatten_invoice_structure(invoice):
         'Total': invoice.total,
         'Terms': invoice.terms
     }
+
+    try:
+        record = InvoiceModel.query.filter_by(invoice_number=invoice.invoice_number).first()
+        if not record:
+            if isinstance(invoice.invoice_date, str):
+                invoice.invoice_date = datetime.datetime.strptime(
+                    invoice.invoice_date, "%Y-%m-%d"
+                ).date()
+            # Buat instance Invoice
+            new_invoice = InvoiceModel(
+                invoice_number = invoice.invoice_number,
+                invoice_date = invoice.invoice_date,
+                invoice_type = invoice.invoice_type,
+                issuer_name = invoice.issuer.name,
+                issuer_address = invoice.issuer.address,
+                issuer_phone = invoice.issuer.phone,
+                issuer_email = invoice.issuer.email,
+                recipient_name = invoice.recipient.name,
+                recipient_address = invoice.recipient.address,
+                recipient_phone = invoice.recipient.phone,
+                recipient_email = invoice.recipient.email,
+                subtotal = invoice.subtotal,
+                tax_rate = invoice.tax_rate,
+                tax = invoice.tax,
+                total = invoice.total,
+                terms = invoice.terms
+            )
+
+            # Tambahkan ke session dan commit
+            db.session.add(new_invoice)
+            db.session.commit()
+            items = [
+                InvoiceItemModel(invoice_id=new_invoice.id, description=item.description, total=item.total)
+                for item in invoice.invoice_items
+            ]
+
+            db.session.add_all(items)
+            db.session.commit()
     
-    # for i, item in enumerate(invoice.invoice_items, 1):
-    #     flat[f'Item {i} Description'] = item.description
-    #     flat[f'Item {i} Total'] = item.total
-    
+    except Exception as e:
+        print(f"Error saving invoice {invoice.invoice_number}: {e}")
+        traceback.print_exc()
+        # for i, item in enumerate(invoice.invoice_items, 1):
+        #     flat[f'Item {i} Description'] = item.description
+        #     flat[f'Item {i} Total'] = item.total
+        
     return flat
 
 def build_invoices_dataframe(invoices_filenames, invoices_json):

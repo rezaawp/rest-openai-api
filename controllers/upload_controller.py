@@ -83,7 +83,7 @@ def get_uploaded_dir():
             "status": dir_status.status
         })
     return jsonify({
-        "stauts":"success",
+        "status":"success",
         "message": "Fetched uploaded directories",
         "data":result   
     }), 200
