@@ -4,6 +4,7 @@ import os
 from services.extraction_invoice.main import process_invoices
 from extensions import db
 from models.bulk_invoice_status import BulkInvoiceStatus
+import asyncio
 
 process_inv = Blueprint("process_inv", __name__)
 
@@ -15,11 +16,12 @@ def process_uploaded_invoices():
 
     invoice_dir = data["directory"]
 
-    if not os.path.exists(invoice_dir):
+    _path_dir = os.path.join(os.getenv("INVOICE_DIR", "i=nvoices"), invoice_dir)
+    if not os.path.exists(_path_dir):
         return jsonify({"error": "Directory does not exist"}), 400
 
     try:
-        results = process_invoices(invoice_dir)
+        asyncio.run(process_invoices(invoice_dir))
         record = BulkInvoiceStatus.query.filter_by(random_dir_name=invoice_dir).first()
         record.status = "Processed"
         db.session.commit()

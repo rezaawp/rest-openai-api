@@ -9,7 +9,7 @@ from models.bulk_invoice_status import BulkInvoiceStatus
 
 load_dotenv()
 async def process_invoices(invoice_dir="data/invoices"):
-    _path_dir = os.path.join(os.getenv("INVOICE_DIR", "i=nvoices"), invoice_dir)
+    _path_dir = os.path.join(os.getenv("INVOICE_DIR", "invoices"), invoice_dir)
     record = BulkInvoiceStatus.query.filter_by(random_dir_name=invoice_dir).first()
     record.status = "Processing"
     db.session.commit()
