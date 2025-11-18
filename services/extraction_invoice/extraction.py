@@ -4,10 +4,12 @@ from io import BytesIO
 from pdf2image import convert_from_path
 from openai import AsyncOpenAI
 from tqdm.asyncio import tqdm_asyncio
-from services.extraction_invoice.config import settings
 from services.extraction_invoice.prompt import SYSTEM_PROMPT
+from dotenv import load_dotenv
 
-openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+load_dotenv()
+
+openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def pdf_to_base64_images(pdf_path):
     imgs = convert_from_path(pdf_path, fmt='png')
@@ -25,7 +27,7 @@ async def extract_invoice_data(base64_img):
         model='gpt-4o',
         response_format={ 'type': 'json_object' },
         messages=[
-            {'role': 'system', 'content': SYSTEM_PROMPT.format(company=settings.COMPANY_NAME)},
+            {'role': 'system', 'content': SYSTEM_PROMPT.format(company=os.getenv("COMPANY_NAME"))},
             {'role': 'user', 'content': [
                 {'type': 'image_url', 'image_url': {'url': f'data:image/png;base64,{base64_img}'}}
             ]}

@@ -3,6 +3,7 @@ from enum import Enum
 from datetime import date
 from pydantic import BaseModel, ConfigDict, ValidationError
 import pandas as pd
+from pprint import pprint
 
 class InvoiceType(str, Enum):
     incoming = 'incoming'
