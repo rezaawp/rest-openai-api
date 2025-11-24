@@ -6,7 +6,8 @@ import os
 from controllers.upload_controller import upload_bp
 from controllers.invoice_controller import invoice_handler
 from extensions import db
-from controllers.ai_video_controller import ai_video_handler, ai_video_callback_handler
+from flask_restx import Api
+from controllers.ai_video_controller import ai_video_ns, ai_video_callback_ns
 
 migrate = Migrate()
 
@@ -47,11 +48,21 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
 
+    # Register RESTX API
+    api = Api(
+        app,
+        version="1.0",
+        title="Server API Documentation",
+        description="Swagger UI for your Flask API",
+        doc="/api/docs"  # Swagger UI endpoint
+    )
+
+    api.add_namespace(ai_video_ns, path="/api/ai")
+    api.add_namespace(ai_video_callback_ns, path="/callback/ai")
+
     # Register blueprints
     app.register_blueprint(upload_bp, url_prefix="/api")
     app.register_blueprint(invoice_handler, url_prefix="/api")
-    app.register_blueprint(ai_video_handler, url_prefix="/api")
-    app.register_blueprint(ai_video_callback_handler, url_prefix="/callback")
 
     @app.route('/')
     def home():
